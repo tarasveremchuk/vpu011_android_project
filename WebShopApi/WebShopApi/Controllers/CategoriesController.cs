@@ -49,5 +49,46 @@ namespace WebShopApi.Controllers
                 return BadRequest(new { error=ex.Message });
             }
         }
+        [HttpPut("update")]
+        public async Task<IActionResult> Put([FromBody] CategoryUpdateeItemVM model)
+        {
+            var cat = await _appEFContext.Categories.FindAsync(model.Id);
+            if (cat == null)
+                return NotFound();
+            else
+            {
+                cat.Name= model.Name;
+                cat.Description= model.Description;
+                cat.Priority = model.Priority;
+                ImageWorker.RemoveImage(cat.Image);
+                cat.Image = ImageWorker.SaveImage(model.ImageBase64);
+                _appEFContext.Update(cat);
+                _appEFContext.SaveChanges();
+            }
+            return Ok();
+        }
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var category = await _appEFContext.Categories.FindAsync(id);
+            if (category is null)
+                return NotFound();
+            else
+            {
+                category.isDelete = true;
+                _appEFContext.SaveChanges();
+                return Ok();
+            }
+        }
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var category = await _appEFContext.Categories.FindAsync(id);
+            if (category is null)
+                return NotFound();
+
+            return Ok(_mapper.Map<CategoryItemViewModel>(category));
+
+        }
     }
 }

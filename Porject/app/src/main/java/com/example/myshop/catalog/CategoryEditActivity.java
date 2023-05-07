@@ -1,13 +1,10 @@
 package com.example.myshop.catalog;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Base64;
@@ -16,11 +13,16 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.example.myshop.BaseActivity;
 import com.example.myshop.ChangeImageActivity;
-import com.example.myshop.MainActivity;
 import com.example.myshop.R;
+import com.example.myshop.application.HomeApplication;
+import com.example.myshop.constants.Urls;
 import com.example.myshop.dto.category.CategoryCreateDTO;
+import com.example.myshop.dto.category.CategoryItemDTO;
+import com.example.myshop.dto.category.CategoryUpdateDTO;
 import com.example.myshop.service.CategoryNetwork;
 import com.example.myshop.utils.CommonUtils;
 import com.google.android.material.textfield.TextInputEditText;
@@ -33,12 +35,12 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class CategoryCreateActivity extends BaseActivity {
+public class CategoryEditActivity extends BaseActivity {
 
     int SELECT_CROPPER = 300;
+    int id=0;
     Uri uri=null;
     ImageView IVPreviewImage;
-    TextView textImageError;
 
     TextInputEditText txtCategoryName;
     TextInputEditText txtCategoryPriority;
@@ -53,9 +55,8 @@ public class CategoryCreateActivity extends BaseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_category_create);
+        setContentView(R.layout.activity_category_edit);
         IVPreviewImage = findViewById(R.id.IVPreviewImage);
-        textImageError = findViewById(R.id.textImageError);
 
         txtCategoryName=findViewById(R.id.txtCategoryName);
         txtCategoryPriority=findViewById(R.id.txtCategoryPriority);
@@ -65,7 +66,43 @@ public class CategoryCreateActivity extends BaseActivity {
         txtFieldCategoryPriority = (TextInputLayout) findViewById(R.id.txtFieldCategoryPriority);
         txtFieldCategoryDescription = (TextInputLayout) findViewById(R.id.txtFieldCategoryDescription);
 
+        Bundle b = getIntent().getExtras();
+        if(b!=null)
+            id=b.getInt("id");
+        initialInputValue();
+
         setupError();
+    }
+
+    private void initialInputValue() {
+        CommonUtils.showLoading();
+        CategoryNetwork
+                .getInstance()
+                .getJSONApi()
+                .getById(id)
+                .enqueue(new Callback<CategoryItemDTO>() {
+                    @Override
+                    public void onResponse(Call<CategoryItemDTO> call, Response<CategoryItemDTO> response) {
+                        if(response.isSuccessful())
+                        {
+                            CategoryItemDTO category= response.body();
+                            txtCategoryName.setText(category.getName());
+                            txtCategoryDescription.setText(category.getDescription());
+                            txtCategoryPriority.setText(Integer.toString(category.getPriority()));
+                            String url= Urls.BASE+category.getImage();
+                            Glide.with(HomeApplication.getAppContext())
+                                    .load(url)
+                                    .apply(new RequestOptions().override(600))
+                                    .into(IVPreviewImage);
+                        }
+                        CommonUtils.hideLoading();
+                    }
+
+                    @Override
+                    public void onFailure(Call<CategoryItemDTO> call, Throwable t) {
+                        CommonUtils.hideLoading();
+                    }
+                });
     }
 
     public void handleCreateCategoryClick(View view) {
@@ -75,20 +112,23 @@ public class CategoryCreateActivity extends BaseActivity {
             return;
         }
 
-        CategoryCreateDTO create = new CategoryCreateDTO();
-        create.setName(txtCategoryName.getText().toString());
-        create.setDescription(txtCategoryDescription.getText().toString());
-        create.setPriority(Integer.parseInt(txtCategoryPriority.getText().toString()));
-        create.setImageBase64(uriGetBase64(uri));
-        CommonUtils.showLoading();
+        CategoryUpdateDTO update = new CategoryUpdateDTO();
+        update.setId(id);
+        update.setName(txtCategoryName.getText().toString());
+        update.setDescription(txtCategoryDescription.getText().toString());
+        update.setPriority(Integer.parseInt(txtCategoryPriority.getText().toString()));
+       if (uri!=null) {
+           update.setImageBase64(uriGetBase64(uri));
+       }
+           CommonUtils.showLoading();
         CategoryNetwork.getInstance()
                 .getJSONApi()
-                .create(create)
+                .update(update)
                 .enqueue(new Callback<Void>() {
                     @Override
                     public void onResponse(Call<Void> call, Response<Void> response) {
                         CommonUtils.hideLoading();
-                        Intent intent = new Intent(CategoryCreateActivity.this, CatalogActivity.class);
+                        Intent intent = new Intent(CategoryEditActivity.this, CatalogActivity.class);
                         startActivity(intent);
                         finish();
                     }
@@ -128,13 +168,6 @@ public class CategoryCreateActivity extends BaseActivity {
             isValid=false;
         }
 
-        if(uri==null) {
-            textImageError.setVisibility(View.VISIBLE);
-            isValid=false;
-        }
-        else {
-            textImageError.setVisibility(View.INVISIBLE);
-        }
         return isValid;
     }
     private void setupError() {
@@ -249,7 +282,6 @@ public class CategoryCreateActivity extends BaseActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == SELECT_CROPPER) {
             uri = (Uri) data.getParcelableExtra("croppedUri");
-            textImageError.setVisibility(View.INVISIBLE);
             IVPreviewImage.setImageURI(uri);
         }
     }
