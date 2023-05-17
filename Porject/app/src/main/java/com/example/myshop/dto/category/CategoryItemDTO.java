@@ -5,26 +5,6 @@ public class CategoryItemDTO {
     private String name;
     private String image;
 
-    public int getPriority() {
-        return priority;
-    }
-
-    public void setPriority(int priority) {
-        this.priority = priority;
-    }
-
-    private int priority;
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    private String description;
-
     public int getId() {
         return id;
     }

@@ -16,41 +16,45 @@ import java.io.File;
 
 public class ChangeImageActivity extends AppCompatActivity {
 
-    private static int RESULT_LOAD_IMAGE = 1;
-    public static String base64;
+    public static final int PICK_IMAGE = 1;
     private CropView cropView;
-    private Bitmap croppedBitmap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_change_image);
         cropView = findViewById(R.id.cropView);
-        Intent i =new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        startActivityForResult(i, RESULT_LOAD_IMAGE);
+
+        Intent intent = new Intent();
+        intent.setType("image/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(intent, "Обрати фото"), PICK_IMAGE);
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == RESULT_LOAD_IMAGE) {
-            if(resultCode == RESULT_OK && data!=null){
-                Uri selectedImage = data.getData();
-                cropView.of(selectedImage).asSquare().initialize(this);
+        if(requestCode==PICK_IMAGE) {
+            if(resultCode==RESULT_OK && data!=null) {
+                Uri selectImage = data.getData();
+                cropView.of(selectImage).asSquare().initialize(this);
             }
-
+            else
+                finish();
         }
-    } //onActivityResult
-
-    public void RotateRightImage(View view) {
-        cropView.setRotation(cropView.getRotation()+90);
+        else
+            finish();
     }
-
-    public void RotateLeftImage(View view) {
+    public void onClickCancel(View view) {
+        finish();
+    }
+    public void onClickLeft(View view) {
         cropView.setRotation(cropView.getRotation()-90);
     }
-
-    public void ChangeImage(View view) {
+    public void onClickRight(View view) {
+        cropView.setRotation(cropView.getRotation()+90);
+    }
+    public void onClickCrop(View view) {
         String fileTemp = java.util.UUID.randomUUID().toString();
         Bitmap croppedBitmap = cropView.getOutput();
         Matrix matrix = new Matrix();
